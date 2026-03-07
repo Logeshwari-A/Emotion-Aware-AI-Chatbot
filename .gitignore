@@ -1,0 +1,11 @@
+# Python
+Emotion-Chatbot/venv/
+Emotion-Chatbot/**/__pycache__/
+*.pyc
+
+# Node
+Emotion-Chatbot/emotion-chatbot-frontend/node_modules/
+
+# Environment
+.env
+*.db
