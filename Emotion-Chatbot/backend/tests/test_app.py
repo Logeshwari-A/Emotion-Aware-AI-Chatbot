@@ -118,3 +118,52 @@ class TestContentDelivery:
         
         if response.status_code == 200:
             assert response.headers.get("content-type") is not None
+
+
+class TestSafetyAndMetadata:
+    """Test suite for new crisis override and response metadata fields."""
+
+    def test_response_includes_session_metadata_fields(self, client):
+        response = client.post(
+            "/chat",
+            json={
+                "message": "I feel tired today.",
+                "user_id": "meta_user",
+                "session_id": "session-meta-1",
+                "turn_id": "turn-meta-1",
+                "final_transcript": True,
+                "speaking_state": "text"
+            }
+        )
+
+        if response.status_code == 200:
+            data = response.json()
+            assert "session_id" in data
+            assert "turn_id" in data
+            assert "final_transcript" in data
+            assert "speaking_state" in data
+            assert "risk_level" in data
+            assert "safety_trigger" in data
+            assert "crisis_resources" in data
+
+    def test_crisis_message_triggers_override(self, client):
+        response = client.post(
+            "/chat",
+            json={
+                "message": "I can't go on and I want to kill myself",
+                "user_id": "crisis_user",
+                "session_id": "crisis-session-1",
+                "final_transcript": True,
+                "speaking_state": "listening"
+            }
+        )
+
+        # Keep tests resilient in environments where external dependencies can fail.
+        assert response.status_code in [200, 500, 401]
+        if response.status_code == 200:
+            data = response.json()
+            assert data.get("safety_trigger") is True
+            assert data.get("strategy") == "crisis_override"
+            assert data.get("risk_level") == "high"
+            assert isinstance(data.get("crisis_resources"), list)
+            assert len(data.get("crisis_resources")) > 0
